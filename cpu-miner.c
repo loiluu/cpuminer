@@ -677,14 +677,14 @@ static void share_result(int result, const char *reason)
 
 static bool submit_upstream_work(CURL *curl, struct work *work)
 {
-	FILE *pf;
-	char command[1000];
-	char difficulty[100];
-	sprintf(command, "bitcoin-cli -datadir=/home/inian/bitcoin/experiment getdifficulty");
-	pf = popen(command, "r");
-	fgets(difficulty, 50 , pf);
-	pclose(pf);
-	applog(LOG_DEBUG, "diff is %s", difficulty);
+	// FILE *pf;
+	// char command[1000];
+	// char difficulty[100];
+	// sprintf(command, "bitcoin-cli -datadir=/home/inian/bitcoin/experiment getdifficulty");
+	// pf = popen(command, "r");
+	// fgets(difficulty, 50 , pf);
+	// pclose(pf);
+	// applog(LOG_DEBUG, "diff is %s", difficulty);
 	json_t *val, *res, *reason;
 	char data_str[2 * sizeof(work->data) + 1];
 	char s[345];
