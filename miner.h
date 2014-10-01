@@ -152,7 +152,7 @@ void sha256_transform_8way(uint32_t *state, const uint32_t *block, int swap);
 #endif
 
 extern int scanhash_sha256d(int thr_id, uint32_t *pdata,
-	const uint32_t *ptarget, uint32_t max_nonce, unsigned long *hashes_done);
+	const uint32_t *ptarget, uint32_t max_nonce, unsigned long *hashes_done, const uint32_t *main_target);
 
 extern unsigned char *scrypt_buffer_alloc(int N);
 extern int scanhash_scrypt(int thr_id, uint32_t *pdata,
@@ -203,7 +203,7 @@ extern int varint_encode(unsigned char *p, uint64_t n);
 extern size_t address_to_script(unsigned char *out, size_t outsz, const char *addr);
 extern int timeval_subtract(struct timeval *result, struct timeval *x,
 	struct timeval *y);
-extern bool fulltest(const uint32_t *hash, const uint32_t *target);
+extern bool fulltest(const uint32_t *hash, const uint32_t *target, const uint32_t *main_target);
 extern void diff_to_target(uint32_t *target, double diff);
 
 struct stratum_job {

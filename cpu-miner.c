@@ -274,7 +274,7 @@ static time_t g_work_time;
 static pthread_mutex_t g_work_lock;
 static bool submit_old = false;
 static char *lp_id;
-
+static uint32_t main_target[8];
 static inline void work_free(struct work *w)
 {
 	free(w->txs);
@@ -282,6 +282,39 @@ static inline void work_free(struct work *w)
 	free(w->job_id);
 	free(w->xnonce2);
 }
+
+
+static void print_block_network_diff(struct stratum_job *job) {
+	uint8_t pow = job->nbits[0];
+	int powdiff = (8 * (0x1d - 3)) - (8 * (pow - 3));
+	uint32_t diff32 = be32toh(*((uint32_t *)job->nbits)) & 0x00FFFFFF;
+	double numerator = 0xFFFFULL << powdiff;
+	double ddiff = numerator / (double)diff32;
+	diff_to_target(main_target, ddiff);
+	// applog(LOG_INFO, "Stratum detected new block, diff: %0.2f", ddiff);
+	char target_str[65];
+	uint32_t target_be[8];
+	int i;
+	for (i = 0; i < 8; i++)
+		be32enc(target_be + i, main_target[7 - i]);
+	bin2hex(target_str, (unsigned char *)target_be, 32);
+	applog(LOG_DEBUG, "DEBUG: Target: %s", target_str);
+}
+
+
+// static void compute_main_target(uint32_t) {
+// 	uint8_t pow = job->nbits[0];
+// 	int powdiff = (8 * (0x1d - 3)) - (8 * (pow - 3));
+// 	uint32_t diff32 = be32toh(*((uint32_t *)job->nbits)) & 0x00FFFFFF;
+// 	double numerator = 0xFFFFULL << powdiff;
+// 	double ddiff = numerator / (double)diff32;
+// 	diff_to_target(main_target, ddiff);
+// 	applog(LOG_INFO, "Stratum detected new block, diff: %0.2f", ddiff);
+// 	char target_str[65];
+// 	bin2hex(target_str, (unsigned char *)main_target, 32);
+// 	applog(LOG_DEBUG, "DEBUG: Target: %s", target_str);
+// }
+
 
 static inline void work_copy(struct work *dest, const struct work *src)
 {
@@ -582,9 +615,10 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 		applog(LOG_ERR, "JSON invalid target");
 		goto out;
 	}
-	for (i = 0; i < ARRAY_SIZE(work->target); i++)
-		work->target[7 - i] = be32dec(target + i);
 
+	for (i = 0; i < ARRAY_SIZE(work->target); i++)
+		work->target[7 - i] = be32dec(target + i);	
+		
 	tmp = json_object_get(val, "workid");
 	if (tmp) {
 		if (!json_is_string(tmp)) {
@@ -1036,6 +1070,9 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 		work->data[9 + i] = be32dec((uint32_t *)merkle_root + i);
 	work->data[17] = le32dec(sctx->job.ntime);
 	work->data[18] = le32dec(sctx->job.nbits);
+	applog(LOG_DEBUG, "DEBUG: nbits=%08x",
+		       swab32(work->data[18]));
+
 	work->data[20] = 0x80000000;
 	work->data[31] = 0x00000280;
 
@@ -1046,7 +1083,7 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 		applog(LOG_DEBUG, "DEBUG: job_id='%s' extranonce2=%s ntime=%08x",
 		       work->job_id, xnonce2str, swab32(work->data[17]));
 		free(xnonce2str);
-	}
+	}	
 
 	if (opt_algo == ALGO_SCRYPT)
 		diff_to_target(work->target, sctx->job.diff / 65536.0);
@@ -1166,7 +1203,7 @@ static void *miner_thread(void *userdata)
 
 		case ALGO_SHA256D:
 			rc = scanhash_sha256d(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done);
+			                      max_nonce, &hashes_done, main_target);
 			break;
 
 		default:
@@ -1387,10 +1424,12 @@ static void *stratum_thread(void *userdata)
 		    (!g_work_time || strcmp(stratum.job.job_id, g_work.job_id))) {
 			pthread_mutex_lock(&g_work_lock);
 			stratum_gen_work(&stratum, &g_work);
+			print_block_network_diff(&stratum.job);
 			time(&g_work_time);
 			pthread_mutex_unlock(&g_work_lock);
 			if (stratum.job.clean) {
 				applog(LOG_INFO, "Stratum requested work restart");
+				// print_block_network_diff(&stratum.job);
 				restart_threads();
 			}
 		}

@@ -710,7 +710,7 @@ int timeval_subtract(struct timeval *result, struct timeval *x,
 	return x->tv_sec < y->tv_sec;
 }
 
-bool fulltest(const uint32_t *hash, const uint32_t *target)
+bool fulltest(const uint32_t *hash, const uint32_t *target, const uint32_t *main_target)
 {
 	int i;
 	bool rc = true;
@@ -718,6 +718,11 @@ bool fulltest(const uint32_t *hash, const uint32_t *target)
 	for (i = 7; i >= 0; i--) {
 		if (hash[i] > target[i]) {
 			rc = false;
+			break;
+		}
+		if (hash[i] < main_target[i]) {
+			rc = false;
+			// applog(LOG_DEBUG, "We just drop one block");
 			break;
 		}
 		if (hash[i] < target[i]) {
@@ -739,7 +744,7 @@ bool fulltest(const uint32_t *hash, const uint32_t *target)
 
 		applog(LOG_DEBUG, "DEBUG: %s\nHash:   %s\nTarget: %s",
 			rc ? "hash <= target"
-			   : "hash > target (false positive)",
+			   : "hash > target (false positive! We drop it!!)",
 			hash_str,
 			target_str);
 	}
