@@ -715,39 +715,53 @@ bool fulltest(const uint32_t *hash, const uint32_t *target, const uint32_t *main
 	int i;
 	bool rc = true;
 	
-	for (i = 7; i >= 0; i--) {
-		if (hash[i] > target[i]) {
-			rc = false;
+	//check if the share is a valid block
+	for (i = 7; i >= 0; i--){
+		if (hash[i] > main_target[i])					
 			break;
-		}
+
 		if (hash[i] < main_target[i]) {
-			rc = false;
-			// applog(LOG_DEBUG, "We just drop one block");
-			break;
-		}
-		if (hash[i] < target[i]) {
-			rc = true;
+			rc = false;			
 			break;
 		}
 	}
 
-	if (opt_debug) {
-		uint32_t hash_be[8], target_be[8];
-		char hash_str[65], target_str[65];
+	if (rc && i == 0 && hash[0] == main_target[0])
+		rc = false;	
+
+	if (rc)
+		for (i = 7; i >= 0; i--) {		
+			if (hash[i] > target[i]) {
+				rc = false;
+				break;
+			}		
+					
+			if (hash[i] < target[i]) {
+				rc = true;
+				break;
+			}
+		}
+
+	// if (opt_debug) {
+		uint32_t hash_be[8], target_be[8], main_be[8];
+		char hash_str[65], target_str[65], main_str[65];
 		
 		for (i = 0; i < 8; i++) {
 			be32enc(hash_be + i, hash[7 - i]);
 			be32enc(target_be + i, target[7 - i]);
+			be32enc(main_be + i, main_target[7 - i]);
 		}
 		bin2hex(hash_str, (unsigned char *)hash_be, 32);
 		bin2hex(target_str, (unsigned char *)target_be, 32);
+		bin2hex(main_str, (unsigned char *)main_be, 32);
 
-		applog(LOG_DEBUG, "DEBUG: %s\nHash:   %s\nTarget: %s",
+		applog(LOG_DEBUG, "DEBUG: %s\nHash:       %s\nTarget:     %s\nMainTarget: %s",
 			rc ? "hash <= target"
 			   : "hash > target (false positive! We drop it!!)",
 			hash_str,
-			target_str);
-	}
+			target_str,
+			main_str);
+	// }
 
 	return rc;
 }

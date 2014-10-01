@@ -298,7 +298,7 @@ static void print_block_network_diff(struct stratum_job *job) {
 	for (i = 0; i < 8; i++)
 		be32enc(target_be + i, main_target[7 - i]);
 	bin2hex(target_str, (unsigned char *)target_be, 32);
-	applog(LOG_DEBUG, "DEBUG: Target: %s", target_str);
+	applog(LOG_DEBUG, "DEBUG: Main Target: %s", target_str);
 }
 
 
