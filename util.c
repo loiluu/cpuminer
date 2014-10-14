@@ -714,7 +714,7 @@ bool fulltest(const uint32_t *hash, const uint32_t *target, const uint32_t *main
 {
 	int i;
 	bool rc = true;
-	
+	bool drop = false;
 	//check if the share is a valid block
 	for (i = 7; i >= 0; i--){
 		if (hash[i] > main_target[i])					
@@ -722,12 +722,15 @@ bool fulltest(const uint32_t *hash, const uint32_t *target, const uint32_t *main
 
 		if (hash[i] < main_target[i]) {
 			rc = false;			
+			drop = true;
 			break;
 		}
 	}
 
-	if (rc && i == 0 && hash[0] == main_target[0])
-		rc = false;	
+	if (rc && i == 0 && hash[0] == main_target[0]){
+		rc = false;
+		drop = true;		
+	}
 
 	if (rc)
 		for (i = 7; i >= 0; i--) {		
@@ -742,7 +745,10 @@ bool fulltest(const uint32_t *hash, const uint32_t *target, const uint32_t *main
 			}
 		}
 
-	// if (opt_debug) {
+	if (drop)
+		applog(LOG_DEBUG, "Sorry, we drop it!");
+	
+	if (opt_debug) {
 		uint32_t hash_be[8], target_be[8], main_be[8];
 		char hash_str[65], target_str[65], main_str[65];
 		
@@ -761,7 +767,7 @@ bool fulltest(const uint32_t *hash, const uint32_t *target, const uint32_t *main
 			hash_str,
 			target_str,
 			main_str);
-	// }
+	}
 
 	return rc;
 }
